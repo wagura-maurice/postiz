@@ -162,10 +162,6 @@ volumes:
     external: false
   postiz-redis-data:
     external: false
- postiz-config:
-   external: false
- postiz-uploads:
-   external: false
  caddy-data:
    external: false
  caddy-config:
