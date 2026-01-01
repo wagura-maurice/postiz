@@ -48,8 +48,8 @@ services:
       FACEBOOK_APP_SECRET: ""
 
       # X (Twitter)
-      X_API_KEY: "baIu9pDIo6S7bhyBbVpETWxc2"
-      X_API_SECRET: "5RbKkFA8Arr0Jz9xz2rLDSujZqgTjm5IHbjEbCdpEGqzB2EcAV"
+      X_API_KEY: ""
+      X_API_SECRET: ""
 
       # LinkedIn
       LINKEDIN_CLIENT_ID: ""
