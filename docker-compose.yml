@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postiz:
     image: ghcr.io/gitroomhq/postiz-app:latest
@@ -161,6 +159,10 @@ volumes:
   postgres-volume:
     external: false
   postiz-redis-data:
+    external: false
+  postiz-config:
+    external: false
+  postiz-uploads:
     external: false
   caddy-data:
     external: false
