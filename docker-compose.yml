@@ -1,0 +1,176 @@
+version: "3.8"
+
+services:
+  postiz:
+    image: ghcr.io/gitroomhq/postiz-app:latest
+    container_name: postiz
+    restart: always
+    environment:
+      # === Required Settings - Public IP access (HTTP only)
+      MAIN_URL: "https://social.amarissolutions.com"
+      FRONTEND_URL: "https://social.amarissolutions.com"
+      NEXT_PUBLIC_BACKEND_URL: "https://social.amarissolutions.com/api"
+      JWT_SECRET: "generate-a-strong-random-string-here-at-least-32-chars" # IMPORTANT: Change this! Run: openssl rand -hex 32
+
+      # === Database & Redis
+      DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
+      REDIS_URL: "redis://postiz-redis:6379"
+      BACKEND_INTERNAL_URL: "http://localhost:3000"
+
+      # === General Settings
+      IS_GENERAL: "true" # Required for self-hosting
+      DISABLE_REGISTRATION: "false" # Set to "true" after first registration to prevent others from signing up
+
+      # === Email/SMTP Settings (Mail Trap)
+      EMAIL_PROVIDER: "nodemailer"
+      EMAIL_HOST: "sandbox.smtp.mailtrap.io"
+      EMAIL_PORT: "2525"
+      EMAIL_SECURE: "false" # Use true for port 465 (SSL), false for port 587 (STARTTLS)
+      EMAIL_USER: "be6e87f82be3a7"
+      EMAIL_PASS: "2b1dadf3db173f" # IMPORTANT: Use an App Password, not your regular Gmail password!
+      EMAIL_FROM_NAME: "Postiz"
+      EMAIL_FROM_ADDRESS: "postiz@example.com"
+
+      # === Storage Settings (Local storage)
+      STORAGE_PROVIDER: "local"
+      UPLOAD_DIRECTORY: "/uploads"
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
+
+      # === Cloudflare R2 Settings (Optional - leave blank if not using)
+      CLOUDFLARE_ACCOUNT_ID: ""
+      CLOUDFLARE_ACCESS_KEY: ""
+      CLOUDFLARE_SECRET_ACCESS_KEY: ""
+      CLOUDFLARE_BUCKETNAME: ""
+      CLOUDFLARE_BUCKET_URL: ""
+      CLOUDFLARE_REGION: "auto"
+
+      # === Social Media API Settings (Fill these in Postiz UI or here)
+      # Facebook
+      FACEBOOK_APP_ID: ""
+      FACEBOOK_APP_SECRET: ""
+
+      # X (Twitter)
+      X_API_KEY: "baIu9pDIo6S7bhyBbVpETWxc2"
+      X_API_SECRET: "5RbKkFA8Arr0Jz9xz2rLDSujZqgTjm5IHbjEbCdpEGqzB2EcAV"
+
+      # LinkedIn
+      LINKEDIN_CLIENT_ID: ""
+      LINKEDIN_CLIENT_SECRET: ""
+
+      # Mastodon
+      MASTODON_URL: "https://fosstodon.org"
+      MASTODON_CLIENT_ID: ""
+      MASTODON_CLIENT_SECRET: ""
+
+      # Discord
+      DISCORD_CLIENT_ID: ""
+      DISCORD_CLIENT_SECRET: ""
+      DISCORD_BOT_TOKEN_ID: ""
+
+      # === AI Settings
+      OPENAI_API_KEY: ""
+
+      # === API Rate Limiting
+      API_LIMIT: "30"
+
+      # === Payment / Stripe (Optional)
+      FEE_AMOUNT: "0.05"
+      STRIPE_PUBLISHABLE_KEY: ""
+      STRIPE_SECRET_KEY: ""
+      STRIPE_SIGNING_KEY: ""
+      STRIPE_SIGNING_KEY_CONNECT: ""
+
+      # === OAuth Settings (Optional)
+      AUTHENTIK_ICON: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/master/png/authentik.png"
+      POSTIZ_GENERIC_OAUTH: "false"
+
+      # === Developer/Debug Settings
+      SENTRY_SPOTLIGHT: "1"
+      NX_ADD_PLUGINS: "false"
+
+    volumes:
+      - postiz-config:/config/
+      - postiz-uploads:/uploads/
+    # ports:
+    #   - "5000:5000" # Exposes on your public IP at port 5000
+    networks:
+      - postiz-network
+    depends_on:
+      postiz-postgres:
+        condition: service_healthy
+      postiz-redis:
+        condition: service_healthy
+
+  postiz-postgres:
+    image: postgres:17-alpine
+    container_name: postiz-postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postiz-password
+      POSTGRES_USER: postiz-user
+      POSTGRES_DB: postiz-db-local
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    networks:
+      - postiz-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postiz-user", "-d", "postiz-db-local"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  postiz-redis:
+    image: redis:7.2
+    container_name: postiz-redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - postiz-redis-data:/data
+    networks:
+      - postiz-network
+
+  spotlight:
+    image: ghcr.io/getsentry/spotlight:latest
+    container_name: spotlight
+    pull_policy: always
+    ports:
+      - "8969:8969"
+    networks:
+      - postiz-network
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # For QUIC/HTTP3, optional but nice
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - postiz-network
+
+volumes:
+  postgres-volume:
+    external: false
+  postiz-redis-data:
+    external: false
+ postiz-config:
+   external: false
+ postiz-uploads:
+   external: false
+ caddy-data:
+   external: false
+ caddy-config:
+   external: false
+
+networks:
+  postiz-network:
+    external: false
